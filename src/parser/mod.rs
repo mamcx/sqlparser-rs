@@ -43,6 +43,10 @@ mod alter;
 pub enum ParserError {
     TokenizerError(String),
     ParserError(String),
+    ParserErrorLoc {
+        msg: String,
+        token: TokenWithLocation,
+    },
     RecursionLimitExceeded,
 }
 
@@ -182,6 +186,9 @@ impl fmt::Display for ParserError {
                 ParserError::TokenizerError(s) => s,
                 ParserError::ParserError(s) => s,
                 ParserError::RecursionLimitExceeded => "recursion limit exceeded",
+                ParserError::ParserErrorLoc { msg, token } => {
+                    return write!(f, "sql parser error:{} at {}", msg, token.location);
+                }
             }
         )
     }
