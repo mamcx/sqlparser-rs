@@ -43,7 +43,7 @@ mod alter;
 pub enum ParserError {
     TokenizerError(String),
     ParserError(String),
-    ParserErrorLoc {
+    ParserErrorWithToken {
         msg: String,
         token: TokenWithLocation,
     },
@@ -186,8 +186,8 @@ impl fmt::Display for ParserError {
                 ParserError::TokenizerError(s) => s,
                 ParserError::ParserError(s) => s,
                 ParserError::RecursionLimitExceeded => "recursion limit exceeded",
-                ParserError::ParserErrorLoc { msg, token } => {
-                    return write!(f, "sql parser error:{} at {}", msg, token.location);
+                ParserError::ParserErrorWithToken { msg, token } => {
+                    return write!(f, "sql parser error: {} {}", msg, token);
                 }
             }
         )
@@ -3516,6 +3516,10 @@ impl<'a> Parser<'a> {
     /// Parse either `ALL`, `DISTINCT` or `DISTINCT ON (...)`. Returns [`None`] if `ALL` is parsed
     /// and results in a [`ParserError`] if both `ALL` and `DISTINCT` are found.
     pub fn parse_all_or_distinct(&mut self) -> Result<Option<Distinct>, ParserError> {
+        if let Some(result) = self.dialect.parse_all_or_distinct(self) {
+            return result;
+        }
+
         let loc = self.peek_token().location;
         let all = self.parse_keyword(Keyword::ALL);
         let distinct = self.parse_keyword(Keyword::DISTINCT);
@@ -9373,6 +9377,9 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_table_and_joins(&mut self) -> Result<TableWithJoins, ParserError> {
+        if let Some(result) = self.dialect.parse_table_and_joins(self) {
+            return result;
+        }
         let relation = self.parse_table_factor()?;
         // Note that for keywords to be properly handled here, they need to be
         // added to `RESERVED_FOR_TABLE_ALIAS`, otherwise they may be parsed as
@@ -10992,6 +10999,10 @@ impl<'a> Parser<'a> {
 
     /// Parse an expression, optionally followed by ASC or DESC (used in ORDER BY)
     pub fn parse_order_by_expr(&mut self) -> Result<OrderByExpr, ParserError> {
+        if let Some(result) = self.dialect.parse_order_by_expr(self) {
+            return result;
+        }
+
         let expr = self.parse_expr()?;
 
         let asc = if self.parse_keyword(Keyword::ASC) {

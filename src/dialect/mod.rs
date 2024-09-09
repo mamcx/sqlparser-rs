@@ -44,7 +44,7 @@ pub use self::postgresql::PostgreSqlDialect;
 pub use self::redshift::RedshiftSqlDialect;
 pub use self::snowflake::SnowflakeDialect;
 pub use self::sqlite::SQLiteDialect;
-use crate::ast::{Expr, Statement};
+use crate::ast::{Distinct, Expr, OrderByExpr, Statement, TableWithJoins};
 pub use crate::keywords;
 use crate::keywords::Keyword;
 use crate::parser::{Parser, ParserError};
@@ -328,6 +328,28 @@ pub trait Dialect: Debug + Any {
         _precedence: u8,
     ) -> Option<Result<Expr, ParserError>> {
         // return None to fall back to the default behavior
+        None
+    }
+
+    fn parse_table_and_joins(
+        &self,
+        _parser: &mut Parser,
+    ) -> Option<Result<TableWithJoins, ParserError>> {
+        None
+    }
+
+    /// Parse an expression, optionally followed by ASC or DESC (used in ORDER BY)
+    fn parse_order_by_expr(
+        &self,
+        _parser: &mut Parser,
+    ) -> Option<Result<OrderByExpr, ParserError>> {
+        None
+    }
+
+    fn parse_all_or_distinct(
+        &self,
+        _parser: &mut Parser,
+    ) -> Option<Result<Option<Distinct>, ParserError>> {
         None
     }
 
